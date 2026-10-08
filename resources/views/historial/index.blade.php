@@ -121,6 +121,7 @@
                     <th class="text-left px-6 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Modalidad</th>
                     <th class="text-left px-6 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Fecha examen</th>
                     <th class="text-left px-6 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Jurado</th>
+                    <th class="text-left px-6 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden xl:table-cell">Folio oficio</th>
                     <th class="text-left px-6 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Periodo</th>
                     <th class="text-left px-6 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Resultado</th>
                 </tr>
@@ -185,6 +186,19 @@
                                     <span class="font-semibold text-purple-600">V:</span> {{ $t->vocal }}
                                 </p>
                             </div>
+                        @else
+                            <span class="text-xs text-gray-300">—</span>
+                        @endif
+                    </td>
+
+                    <td class="px-6 py-4 hidden xl:table-cell">
+                        @if($t->folio_oficio)
+                            <span class="text-xs font-mono text-gray-700">{{ $t->folio_oficio }}</span>
+                            @if($t->fecha_oficio)
+                                <p class="text-xs text-gray-400 mt-0.5">
+                                    {{ $t->fecha_oficio->isoFormat('D MMM YYYY') }}
+                                </p>
+                            @endif
                         @else
                             <span class="text-xs text-gray-300">—</span>
                         @endif

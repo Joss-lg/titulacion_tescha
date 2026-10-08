@@ -135,13 +135,47 @@
 
             @endforeach
 
+            {{-- Datos del oficio --}}
+            <div class="border-t border-gray-100 pt-4 mt-2">
+                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">
+                    Datos del oficio
+                    <span class="font-normal text-gray-400 normal-case">(asignados por control escolar)</span>
+                </p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Número de folio</label>
+                        <input type="text"
+                               name="folio_oficio"
+                               value="{{ old('folio_oficio', $examen->folio_oficio) }}"
+                               placeholder="Ej. ISC/2026/042"
+                               maxlength="30"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl
+                                      focus:outline-none focus:ring-2 focus:ring-vino-400 transition-all">
+                        @error('folio_oficio')
+                            <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Fecha del oficio</label>
+                        <input type="date"
+                               name="fecha_oficio"
+                               value="{{ old('fecha_oficio', $examen->fecha_oficio?->format('Y-m-d')) }}"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl
+                                      focus:outline-none focus:ring-2 focus:ring-vino-400 transition-all">
+                        @error('fecha_oficio')
+                            <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
             <button type="submit"
                 class="w-full flex items-center justify-center gap-2 bg-vino-900 hover:bg-vino-800
                        text-white font-semibold py-3 rounded-xl transition-all shadow-sm text-sm mt-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
-                Confirmar asignación de sinodales
+                Confirmar asignación y generar oficio
             </button>
         </form>
     </div>

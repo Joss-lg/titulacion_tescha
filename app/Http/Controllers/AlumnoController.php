@@ -138,6 +138,8 @@ public function titular(Request $request, Alumno $alumno)
             'hora_inicio'    => $examen?->hora_inicio,
             'hora_fin'       => $examen?->hora_fin,
             'salon'          => $examen?->salon,
+            'folio_oficio'   => $examen?->folio_oficio,
+            'fecha_oficio'   => $examen?->fecha_oficio,
             'presidente'     => $examen?->sinodales->where('rol','presidente')->first()?->docente->nombre_completo,
             'secretario'     => $examen?->sinodales->where('rol','secretario')->first()?->docente->nombre_completo,
             'vocal'          => $examen?->sinodales->where('rol','vocal')->first()?->docente->nombre_completo,

@@ -10,19 +10,22 @@ class Examen extends Model
 {
      protected $table = 'examenes';
 
-    protected $fillable = [
-        'alumno_id',
-        'fecha',
-        'hora_inicio',
-        'hora_fin',
-        'salon',
-        'estado',
-        'observaciones',
-    ];
+protected $fillable = [
+    'alumno_id',
+    'fecha',
+    'hora_inicio',
+    'hora_fin',
+    'salon',
+    'folio_oficio',
+    'fecha_oficio',
+    'estado',
+    'observaciones',
+];
 
-    protected $casts = [
-        'fecha' => 'date',
-    ];
+protected $casts = [
+    'fecha'        => 'date',
+    'fecha_oficio' => 'date',
+];
 
     public function alumno(): BelongsTo
     {

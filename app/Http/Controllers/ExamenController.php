@@ -38,13 +38,16 @@ class ExamenController extends Controller
             'alumno_id'   => 'required|exists:alumnos,id',
             'fecha'       => 'required|date|after_or_equal:today',
             'hora_inicio' => 'required|date_format:H:i',
-            'hora_fin'    => 'required|date_format:H:i|after:hora_inicio',
             'salon'       => 'nullable|string|max:50',
         ]);
 
+        // Hora fin siempre = hora inicio + 1 hora
+        $data['hora_fin'] = Carbon::createFromFormat('H:i', $data['hora_inicio'])
+            ->addHour()
+            ->format('H:i');
+
         $examen = Examen::create($data);
 
-        // Actualizar estado del alumno
         $examen->alumno->update(['estado' => 'asignado']);
 
         return redirect()->route('examenes.sinodales', $examen)
@@ -58,26 +61,26 @@ class ExamenController extends Controller
     }
 
     public function edit(Examen $examen)
-{
-    $alumnos = Alumno::orderBy('apellido_paterno')->get();
-    return view('examenes.edit', compact('examen', 'alumnos'));
-}
+    {
+        $alumnos = Alumno::orderBy('apellido_paterno')->get();
+        return view('examenes.edit', compact('examen', 'alumnos'));
+    }
 
-public function update(Request $request, Examen $examen)
-{
-    $data = $request->validate([
-        'fecha'       => 'required|date',
-        'hora_inicio' => 'required|date_format:H:i',
-        'hora_fin'    => 'required|date_format:H:i|after:hora_inicio',
-        'salon'       => 'nullable|string|max:50',
-        'estado'      => 'required|in:programado,realizado,cancelado',
-    ]);
+    public function update(Request $request, Examen $examen)
+    {
+        $data = $request->validate([
+            'fecha'       => 'required|date',
+            'hora_inicio' => 'required|date_format:H:i',
+            'hora_fin'    => 'required|date_format:H:i|after:hora_inicio',
+            'salon'       => 'nullable|string|max:50',
+            'estado'      => 'required|in:programado,realizado,cancelado',
+        ]);
 
-    $examen->update($data);
+        $examen->update($data);
 
-    return redirect()->route('examenes.show', $examen->id)
-        ->with('success', 'Examen actualizado correctamente.');
-}
+        return redirect()->route('examenes.show', $examen->id)
+            ->with('success', 'Examen actualizado correctamente.');
+    }
 
     public function destroy(Examen $examen)
     {
@@ -92,7 +95,6 @@ public function update(Request $request, Examen $examen)
     {
         $examen->load('alumno', 'sinodales.docente');
 
-        // Obtener candidatos disponibles
         $candidatos = $this->getCandidatos($examen);
 
         return view('examenes.sinodales', compact('examen', 'candidatos'));
@@ -129,12 +131,14 @@ public function update(Request $request, Examen $examen)
         // Actualizar estado del alumno
         $examen->alumno->update(['estado' => 'asignado']);
 
+        // Recargar desde BD para asegurar folio/fecha frescos
+        $examen->refresh();
+
         // Generar y descargar oficio automáticamente
         try {
             $ruta = app(OficioSinodalService::class)->generar($examen);
             return response()->download($ruta)->deleteFileAfterSend(false);
         } catch (\Throwable $e) {
-            // Si falla la generación del .docx, continuar sin bloquear
             return redirect()->route('examenes.show', $examen)
                 ->with('success', 'Sinodales asignados correctamente.')
                 ->with('warning', 'No se pudo generar el oficio automáticamente: ' . $e->getMessage());
@@ -170,13 +174,12 @@ public function update(Request $request, Examen $examen)
             }])
             ->get();
 
-        $disponibles = [];
+        $disponibles   = [];
         $noDisponibles = [];
 
         foreach ($docentes as $docente) {
             $horarioDia = $docente->horarios->first();
 
-            // Si no tiene horario ese día → no disponible
             if (!$horarioDia) {
                 $noDisponibles[] = [
                     'docente' => $docente,
@@ -185,7 +188,6 @@ public function update(Request $request, Examen $examen)
                 continue;
             }
 
-            // Verificar que el examen cae dentro de su horario
             if ($horaInicio < $horarioDia->hora_entrada || $horaFin > $horarioDia->hora_salida) {
                 $noDisponibles[] = [
                     'docente' => $docente,
@@ -194,7 +196,6 @@ public function update(Request $request, Examen $examen)
                 continue;
             }
 
-            // Verificar bloque muerto
             if ($horarioDia->tiene_bloque_muerto) {
                 $bloqueMuertoOk = $this->verificarSolapamiento(
                     $horaInicio, $horaFin,
@@ -211,7 +212,6 @@ public function update(Request $request, Examen $examen)
                 }
             }
 
-            // Verificar hora de comida (solo PTC)
             if ($docente->esPtc() && $horarioDia->comida_inicio) {
                 $comidaOk = $this->verificarSolapamiento(
                     $horaInicio, $horaFin,
@@ -228,10 +228,9 @@ public function update(Request $request, Examen $examen)
                 }
             }
 
-            // ✅ Docente disponible
             $disponibles[] = [
-                'docente'  => $docente,
-                'horario'  => $horarioDia,
+                'docente' => $docente,
+                'horario' => $horarioDia,
             ];
         }
 
@@ -241,7 +240,6 @@ public function update(Request $request, Examen $examen)
         ];
     }
 
-    // Retorna true si NO hay solapamiento (el examen NO cae en ese bloque)
     private function verificarSolapamiento(
         string $examenInicio, string $examenFin,
         string $bloqueInicio, string $bloqueFin
