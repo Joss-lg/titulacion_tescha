@@ -7,6 +7,7 @@ use App\Models\Docente;
 use App\Models\Examen;
 use App\Models\Sinodal;
 use App\Models\HorarioDocente;
+use App\Services\OficioSinodalService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -100,9 +101,17 @@ public function update(Request $request, Examen $examen)
     public function storeSinodales(Request $request, Examen $examen)
     {
         $request->validate([
-            'presidente' => 'required|exists:docentes,id',
-            'secretario' => 'required|exists:docentes,id|different:presidente',
-            'vocal'      => 'required|exists:docentes,id|different:presidente|different:secretario',
+            'presidente'   => 'required|exists:docentes,id',
+            'secretario'   => 'required|exists:docentes,id|different:presidente',
+            'vocal'        => 'required|exists:docentes,id|different:presidente|different:secretario',
+            'folio_oficio' => 'nullable|string|max:30',
+            'fecha_oficio' => 'nullable|date',
+        ]);
+
+        // Guardar folio y fecha del oficio en el examen
+        $examen->update([
+            'folio_oficio' => $request->folio_oficio,
+            'fecha_oficio' => $request->fecha_oficio,
         ]);
 
         // Eliminar sinodales anteriores si los hay
@@ -120,8 +129,31 @@ public function update(Request $request, Examen $examen)
         // Actualizar estado del alumno
         $examen->alumno->update(['estado' => 'asignado']);
 
-        return redirect()->route('examenes.show', $examen)
-            ->with('success', 'Sinodales asignados correctamente.');
+        // Generar y descargar oficio automáticamente
+        try {
+            $ruta = app(OficioSinodalService::class)->generar($examen);
+            return response()->download($ruta)->deleteFileAfterSend(false);
+        } catch (\Throwable $e) {
+            // Si falla la generación del .docx, continuar sin bloquear
+            return redirect()->route('examenes.show', $examen)
+                ->with('success', 'Sinodales asignados correctamente.')
+                ->with('warning', 'No se pudo generar el oficio automáticamente: ' . $e->getMessage());
+        }
+    }
+
+    // ── Descargar oficio de sinodales ─────────────────
+    public function descargarOficio(Examen $examen)
+    {
+        $examen->load('alumno', 'sinodales.docente');
+
+        if ($examen->sinodales->count() < 3) {
+            return back()->with('error', 'Este examen aún no tiene los 3 sinodales asignados.');
+        }
+
+        $ruta = app(OficioSinodalService::class)->generar($examen);
+        $nombre = 'Oficio_Sinodales_' . $examen->alumno->matricula . '.docx';
+
+        return response()->download($ruta, $nombre)->deleteFileAfterSend(false);
     }
 
     // ── Lógica de disponibilidad ───────────────────────

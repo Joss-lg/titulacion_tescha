@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Docente;
 use App\Models\HorarioDocente;
 use Illuminate\Http\Request;
+use App\Http\Controllers\ImportadorDocenteController;
 
 class DocenteController extends Controller
 {
@@ -28,12 +29,23 @@ class DocenteController extends Controller
             'nombre'           => 'required|string|max:100',
             'apellido_paterno' => 'required|string|max:100',
             'apellido_materno' => 'nullable|string|max:100',
+            'grado'            => 'required|in:Lic.,Ing.,Mtro.,Mtra.,Dr.,Dra.',
             'tipo'             => 'required|in:asignatura,ptc',
             'email'            => 'nullable|email|unique:docentes,email',
             'telefono'         => 'nullable|string|max:20',
+            'pdf'              => 'nullable|file|mimes:pdf|max:10240',
         ]);
 
-        Docente::create($data);
+        // El PDF no es columna de BD, lo sacamos antes de crear
+        $pdf = $request->file('pdf');
+        unset($data['pdf']);
+
+        $docente = Docente::create($data);
+
+        // Si subió PDF, pasarlo directo al importador de horarios
+        if ($pdf) {
+            return app(ImportadorDocenteController::class)->procesar($request, $docente);
+        }
 
         return redirect()->route('docentes.index')
             ->with('success', 'Docente registrado correctamente.');
@@ -81,6 +93,7 @@ class DocenteController extends Controller
             'nombre'           => 'required|string|max:100',
             'apellido_paterno' => 'required|string|max:100',
             'apellido_materno' => 'nullable|string|max:100',
+            'grado'            => 'required|in:Lic.,Ing.,Mtro.,Mtra.,Dr.,Dra.',
             'tipo'             => 'required|in:asignatura,ptc',
             'email'            => 'nullable|email|unique:docentes,email,' . $docente->id,
             'telefono'         => 'nullable|string|max:20',

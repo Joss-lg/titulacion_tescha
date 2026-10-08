@@ -84,6 +84,11 @@ Route::middleware('auth')->group(function () {
         return app(ExamenController::class)->storeSinodales($request, $examen);
     })->name('examenes.sinodales.store');
 
+    Route::get('examenes/{id}/oficio', function ($id) {
+        $examen = Examen::findOrFail($id);
+        return app(ExamenController::class)->descargarOficio($examen);
+    })->name('examenes.oficio');
+
     Route::get('examenes/{id}/hoja', function ($id) {
         $examen = Examen::with('alumno', 'sinodales.docente')->findOrFail($id);
         return view('examenes.hoja', compact('examen'));

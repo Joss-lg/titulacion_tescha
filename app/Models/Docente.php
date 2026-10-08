@@ -12,6 +12,7 @@ class Docente extends Model
         'nombre',
         'apellido_paterno',
         'apellido_materno',
+        'grado',
         'tipo',
         'email',
         'telefono',
@@ -25,7 +26,15 @@ class Docente extends Model
     // Nombre completo como atributo
     public function getNombreCompletoAttribute(): string
     {
-        return "{$this->nombre} {$this->apellido_paterno} {$this->apellido_materno}";
+        $apellidos = trim("{$this->apellido_paterno} {$this->apellido_materno}");
+        return "{$this->nombre} {$apellidos}";
+    }
+
+    public function getNombreConGradoAttribute(): string
+    {
+        $apellidos = trim("{$this->apellido_paterno} {$this->apellido_materno}");
+        $grado = $this->grado ?? '';
+        return trim("{$grado} {$this->nombre} {$apellidos}");
     }
 
     public function esPtc(): bool
