@@ -178,7 +178,7 @@
             <div class="flex items-center w-full">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-vino-800 to-vino-950
                             text-white flex items-center justify-center font-black text-sm shrink-0 shadow-md mx-auto">
-                    {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
+                    {{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 2)) }}
                 </div>
                 <div class="sidebar-text ml-3 flex flex-col justify-center min-w-0">
                     <p class="text-[13px] font-bold text-slate-900 truncate">{{ auth()->user()->name }}</p>
@@ -232,7 +232,7 @@
                 <div class="w-px h-5 bg-gray-100 hidden sm:block"></div>
                 <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-vino-800 to-vino-950
                             flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                    {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
+                    {{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 2)) }}
                 </div>
             </div>
         </header>

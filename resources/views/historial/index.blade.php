@@ -141,7 +141,7 @@
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                {{ strtoupper(substr($t->nombre_completo, 0, 1) . (strpos($t->nombre_completo, ' ') !== false ? substr($t->nombre_completo, strpos($t->nombre_completo, ' ') + 1, 1) : '')) }}
+                                {{ mb_strtoupper(mb_substr($t->nombre_completo, 0, 1) . (mb_strpos($t->nombre_completo, ' ') !== false ? mb_substr($t->nombre_completo, mb_strpos($t->nombre_completo, ' ') + 1, 1) : '')) }}
                             </div>
                             <div>
                                 <p class="text-sm font-semibold text-gray-800">{{ $t->nombre_completo }}</p>

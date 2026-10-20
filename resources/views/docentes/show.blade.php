@@ -60,7 +60,7 @@
         <div class="flex flex-col items-center text-center mb-5">
             <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold mb-3
                         {{ $docente->tipo === 'ptc' ? 'bg-vino-100 text-vino-800' : 'bg-gray-100 text-gray-600' }}">
-                {{ strtoupper(substr($docente->nombre, 0, 1) . substr($docente->apellido_paterno, 0, 1)) }}
+                {{ mb_strtoupper(mb_substr($docente->nombre, 0, 1) . mb_substr($docente->apellido_paterno, 0, 1)) }}
             </div>
             <h2 class="font-bold text-gray-800">{{ $docente->nombre_completo }}</h2>
             <div class="mt-2">

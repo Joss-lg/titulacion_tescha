@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Detalle del examen')
-@section('subtitle', $examen->alumno->nombre_completo)
+@section('subtitle', $examen->nombres_alumnos)
 
 @section('content')
 
@@ -121,8 +121,10 @@ $estadoColor = match($examen->estado) {
                 </div>
                 <div>
                     <p class="text-xs text-gray-400 uppercase tracking-wide">Alumno</p>
-                    <p class="text-sm font-semibold text-gray-800 mt-0.5">{{ $examen->alumno->nombre_completo }}</p>
-                    <p class="text-xs font-mono text-gray-400">{{ $examen->alumno->matricula }}</p>
+                    @foreach($examen->alumnos as $integrante)
+                        <p class="text-sm font-semibold text-gray-800 mt-0.5">{{ $integrante->nombre_completo }}</p>
+                        <p class="text-xs font-mono text-gray-400">{{ $integrante->matricula }}</p>
+                    @endforeach
                 </div>
             </div>
 
@@ -136,7 +138,7 @@ $estadoColor = match($examen->estado) {
                 <div>
                     <p class="text-xs text-gray-400 uppercase tracking-wide">Modalidad</p>
                     <p class="text-sm text-gray-700 mt-0.5">
-                        {{ str_replace('_', ' ', ucfirst($examen->alumno->modalidad)) }}
+                        {{ str_replace('_', ' ', ucfirst($examen->alumnos->pluck('modalidad')->unique()->implode(', '))) }}
                     </p>
                 </div>
             </div>
@@ -273,7 +275,7 @@ $estadoColor = match($examen->estado) {
                     @if($sinodal)
                         <div class="w-12 h-12 rounded-xl {{ $config['bg'] }} {{ $config['text'] }}
                                     flex items-center justify-center text-sm font-bold mx-auto mb-3">
-                            {{ strtoupper(substr($sinodal->docente->nombre, 0, 1) . substr($sinodal->docente->apellido_paterno, 0, 1)) }}
+                            {{ mb_strtoupper(mb_substr($sinodal->docente->nombre, 0, 1) . mb_substr($sinodal->docente->apellido_paterno, 0, 1)) }}
                         </div>
                         <span class="text-xs font-bold uppercase tracking-wider {{ $config['badge'] }} px-2.5 py-1 rounded-full">
                             {{ $config['label'] }}

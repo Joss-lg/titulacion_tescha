@@ -72,6 +72,22 @@
                 </div>
 
                 <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Presidente del jurado *</label>
+                    <select name="presidente_id" required
+                            class="w-full px-4 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-vino-400 transition-all
+                                   @error('presidente_id') border-red-300 bg-red-50 @else border-gray-200 @enderror">
+                        <option value="">Seleccionar docente...</option>
+                        @foreach($docentes as $docente)
+                            <option value="{{ $docente->id }}" {{ old('presidente_id', null) == $docente->id ? 'selected' : '' }}>
+                                {{ $docente->nombre_con_grado }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-gray-400">Secretario y vocal los sortea el sistema al programar el examen.</p>
+                    @error('presidente_id')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Estado inicial *</label>
                     <select name="estado" required
                             class="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-vino-400">

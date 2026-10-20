@@ -17,87 +17,90 @@ class OficioSinodalService
 {
     /** Meses en español */
     private array $meses = [
-        1  => 'enero',   2  => 'febrero',  3  => 'marzo',
-        4  => 'abril',   5  => 'mayo',     6  => 'junio',
-        7  => 'julio',   8  => 'agosto',   9  => 'septiembre',
-        10 => 'octubre', 11 => 'noviembre',12 => 'diciembre',
+        1 => 'enero',   2 => 'febrero',  3 => 'marzo',
+        4 => 'abril',   5 => 'mayo',     6 => 'junio',
+        7 => 'julio',   8 => 'agosto',   9 => 'septiembre',
+        10 => 'octubre', 11 => 'noviembre', 12 => 'diciembre',
     ];
 
     /** Opciones de titulación → texto legible */
     private array $modalidades = [
-        'tesis'                     => 'Tesis',
-        'residencia_profesional'    => 'Residencia Profesional',
+        'tesis' => 'Tesis',
+        'residencia_profesional' => 'Residencia Profesional',
         'proyecto_de_investigacion' => 'Proyecto de Investigación',
-        'memoria_de_experiencia'    => 'Memoria de Experiencia Profesional',
-        'titulacion_integral'       => 'Titulación Integral',
+        'memoria_de_experiencia' => 'Memoria de Experiencia Profesional',
+        'titulacion_integral' => 'Titulación Integral',
     ];
 
     public function generar(Examen $examen): string
     {
-        $examen->load('alumno', 'sinodales.docente');
+        $examen->load('alumnos', 'sinodales.docente');
 
-        $alumno    = $examen->alumno;
-        $fecha     = Carbon::parse($examen->fecha);
-        $dia       = $fecha->day;
-        $mes       = $this->meses[$fecha->month];
-        $anio      = $fecha->year;
+        $alumnos = $examen->alumnos;
+        $fecha = Carbon::parse($examen->fecha);
+        $dia = $fecha->day;
+        $mes = $this->meses[$fecha->month];
+        $anio = $fecha->year;
         $horaInicio = substr((string) $examen->hora_inicio, 0, 5);
-        $salon      = $examen->salon ?? 'AUDITORIO (CENTRO DE INFORMACIÓN)';
-        $modalidad  = $this->modalidades[$alumno->modalidad] ?? strtoupper($alumno->modalidad);
+        $salon = $examen->salon ?? 'AUDITORIO (CENTRO DE INFORMACIÓN)';
+        $modalidad = $alumnos->pluck('modalidad')->unique()
+            ->map(fn ($clave) => $this->modalidades[$clave] ?? $clave)
+            ->implode(' y ');
 
         // Sinodales
         $presidente = $examen->sinodales->firstWhere('rol', 'presidente');
         $secretario = $examen->sinodales->firstWhere('rol', 'secretario');
-        $vocal      = $examen->sinodales->firstWhere('rol', 'vocal');
+        $vocal = $examen->sinodales->firstWhere('rol', 'vocal');
 
-        $nomPresidente = $presidente ? strtoupper($presidente->docente->nombre_con_grado) : '___________________';
-        $nomSecretario = $secretario ? strtoupper($secretario->docente->nombre_con_grado) : '___________________';
-        $nomVocal      = $vocal      ? strtoupper($vocal->docente->nombre_con_grado)      : '___________________';
+        $nomPresidente = $presidente ? mb_strtoupper($presidente->docente->nombre_con_grado, 'UTF-8') : '___________________';
+        $nomSecretario = $secretario ? mb_strtoupper($secretario->docente->nombre_con_grado, 'UTF-8') : '___________________';
+        $nomVocal = $vocal ? mb_strtoupper($vocal->docente->nombre_con_grado, 'UTF-8') : '___________________';
 
-        // Datos del alumno
-        $nombreAlumno = strtoupper(trim("{$alumno->nombre} {$alumno->apellido_paterno} {$alumno->apellido_materno}"));
-        $matricula    = $alumno->matricula;
-        $carrera      = strtoupper($alumno->carrera);
+        // Datos de los sustentantes (uno o un equipo de 2 o 3)
+        $sustentantes = $alumnos->map(fn ($alumno) => [
+            'nombre' => mb_strtoupper(trim("{$alumno->nombre} {$alumno->apellido_paterno} {$alumno->apellido_materno}"), 'UTF-8'),
+            'matricula' => $alumno->matricula,
+        ])->values()->all();
+        $carrera = mb_strtoupper($alumnos->pluck('carrera')->unique()->implode(' y '), 'UTF-8');
 
         // Folio y fecha del oficio
         // El número correlativo (ej. 443) lo asigna control escolar y se guarda en folio_oficio
         $numCorrelativo = $examen->folio_oficio ?? str_pad($examen->id, 3, '0', STR_PAD_LEFT);
-        $numOficio = 'Oficio no. 228C1601010003L-' . $numCorrelativo . '-' . $anio;
+        $numOficio = 'Oficio no. 228C1601010003L-'.$numCorrelativo.'-'.$anio;
 
         if ($examen->fecha_oficio) {
             $fo = Carbon::parse($examen->fecha_oficio);
-            $fechaOficioTexto = $fo->day . ' de ' . $this->meses[$fo->month] . ' de ' . $fo->year;
+            $fechaOficioTexto = $fo->day.' de '.$this->meses[$fo->month].' de '.$fo->year;
         } else {
             $fechaOficioTexto = "{$dia} de {$mes} de {$anio}";
         }
 
         // Rutas
         $membretePath = storage_path('app/plantillas/membrete.png');
-        $outputDir    = storage_path('app/oficios');
-        $outputFile   = $outputDir . '/oficio_sinodales_' . $alumno->matricula . '_' . $examen->id . '.docx';
+        $outputDir = storage_path('app/oficios');
+        $outputFile = $outputDir.'/oficio_sinodales_'.$alumnos->pluck('matricula')->implode('_').'_'.$examen->id.'.docx';
 
-        if (!is_dir($outputDir)) {
+        if (! is_dir($outputDir)) {
             mkdir($outputDir, 0755, true);
         }
 
         // Construir el docx
         $this->construirDocx(
-            outputPath:       $outputFile,
-            membretePath:     $membretePath,
-            numOficio:        $numOficio,
+            outputPath: $outputFile,
+            membretePath: $membretePath,
+            numOficio: $numOficio,
             fechaOficioTexto: $fechaOficioTexto,
-            nomPresidente:    $nomPresidente,
-            nomSecretario:    $nomSecretario,
-            nomVocal:         $nomVocal,
-            nombreAlumno:     $nombreAlumno,
-            matricula:        $matricula,
-            carrera:          $carrera,
-            modalidad:        strtoupper($modalidad),
-            dia:              $dia,
-            mes:              strtoupper($mes),
-            anio:             $anio,
-            horaInicio:       $horaInicio,
-            salon:            strtoupper($salon),
+            nomPresidente: $nomPresidente,
+            nomSecretario: $nomSecretario,
+            nomVocal: $nomVocal,
+            sustentantes: $sustentantes,
+            carrera: $carrera,
+            modalidad: mb_strtoupper($modalidad, 'UTF-8'),
+            dia: $dia,
+            mes: mb_strtoupper($mes, 'UTF-8'),
+            anio: $anio,
+            horaInicio: $horaInicio,
+            salon: mb_strtoupper($salon, 'UTF-8'),
         );
 
         return $outputFile;
@@ -115,17 +118,16 @@ class OficioSinodalService
         string $nomPresidente,
         string $nomSecretario,
         string $nomVocal,
-        string $nombreAlumno,
-        string $matricula,
+        array $sustentantes,
         string $carrera,
         string $modalidad,
-        int    $dia,
+        int $dia,
         string $mes,
-        int    $anio,
+        int $anio,
         string $horaInicio,
         string $salon,
     ): void {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($outputPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             throw new \RuntimeException("No se pudo crear el archivo: {$outputPath}");
         }
@@ -152,20 +154,19 @@ class OficioSinodalService
 
         // word/document.xml  (cuerpo del oficio)
         $zip->addFromString('word/document.xml', $this->documentXml(
-            numOficio:        $numOficio,
+            numOficio: $numOficio,
             fechaOficioTexto: $fechaOficioTexto,
-            nomPresidente:    $nomPresidente,
-            nomSecretario:    $nomSecretario,
-            nomVocal:         $nomVocal,
-            nombreAlumno:     $nombreAlumno,
-            matricula:        $matricula,
-            carrera:          $carrera,
-            modalidad:        $modalidad,
-            dia:              $dia,
-            mes:              $mes,
-            anio:             $anio,
-            horaInicio:       $horaInicio,
-            salon:            $salon,
+            nomPresidente: $nomPresidente,
+            nomSecretario: $nomSecretario,
+            nomVocal: $nomVocal,
+            sustentantes: $sustentantes,
+            carrera: $carrera,
+            modalidad: $modalidad,
+            dia: $dia,
+            mes: $mes,
+            anio: $anio,
+            horaInicio: $horaInicio,
+            salon: $salon,
         ));
 
         $zip->close();
@@ -177,7 +178,7 @@ class OficioSinodalService
 
     private function contentTypes(): string
     {
-        return <<<XML
+        return <<<'XML'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
@@ -193,7 +194,7 @@ XML;
 
     private function rootRels(): string
     {
-        return <<<XML
+        return <<<'XML'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1"
@@ -205,7 +206,7 @@ XML;
 
     private function documentRels(): string
     {
-        return <<<XML
+        return <<<'XML'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1"
@@ -217,7 +218,7 @@ XML;
 
     private function headerRels(): string
     {
-        return <<<XML
+        return <<<'XML'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1"
@@ -234,7 +235,7 @@ XML;
      */
     private function headerXml(): string
     {
-        return <<<XML
+        return <<<'XML'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
        xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -306,18 +307,18 @@ XML;
      */
     private function para(
         string $align,
-        array  $runs,
-        int    $spaceBefore = 0,
-        int    $spaceAfter  = 0,
-        int    $lineSpacing = 240,
-        string $font        = 'Helvetica Neue',
-        int    $defaultSz   = 22,
+        array $runs,
+        int $spaceBefore = 0,
+        int $spaceAfter = 0,
+        int $lineSpacing = 240,
+        string $font = 'Helvetica Neue',
+        int $defaultSz = 22,
     ): string {
         $runXml = '';
         foreach ($runs as $run) {
-            $text  = $this->esc($run['text'] ?? '');
-            $bold  = ($run['bold'] ?? false) ? '<w:b/>' : '<w:b w:val="0"/>';
-            $sz    = $run['sz'] ?? $defaultSz;
+            $text = $this->esc($run['text'] ?? '');
+            $bold = ($run['bold'] ?? false) ? '<w:b/>' : '<w:b w:val="0"/>';
+            $sz = $run['sz'] ?? $defaultSz;
             $space = str_contains($text, ' ') || str_starts_with($text, ' ') || str_ends_with($text, ' ')
                 ? ' xml:space="preserve"'
                 : '';
@@ -359,6 +360,7 @@ PARAXML;
     private function ccpLine(string $rol): string
     {
         $rolEsc = $this->esc($rol);
+
         return <<<CCPXML
     <w:p>
       <w:pPr>
@@ -390,7 +392,7 @@ CCPXML;
      */
     private function tablaFirma(): string
     {
-        return <<<TBLXML
+        return <<<'TBLXML'
     <w:tbl>
       <w:tblPr>
         <w:tblStyle w:val="TableNormal"/>
@@ -469,13 +471,12 @@ TBLXML;
         string $nomPresidente,
         string $nomSecretario,
         string $nomVocal,
-        string $nombreAlumno,
-        string $matricula,
+        array $sustentantes,
         string $carrera,
         string $modalidad,
-        int    $dia,
+        int $dia,
         string $mes,
-        int    $anio,
+        int $anio,
         string $horaInicio,
         string $salon,
     ): string {
@@ -489,28 +490,43 @@ TBLXML;
         //  por la opción de MODALIDAD, el cual se llevará a cabo el día DÍA a
         //  las HORA en el SALON de esta Institución por lo que se le pide su
         //  puntual asistencia."
+        //  En equipo: "...de los CC. NOMBRE1 con número de Matrícula MAT1, NOMBRE2 con
+        //  número de Matrícula MAT2 y NOMBRE3 ... egresados ... quienes sustentarán..."
+        $enEquipo = count($sustentantes) > 1;
+
         $cuerpoRuns = [
-            ['text' => 'Por este medio les informo que el acto protocolario de la Titulación Integral del C. ', 'bold' => false],
-            ['text' => $nombreAlumno . ' ', 'bold' => true],
-            ['text' => 'con número de Matrícula ', 'bold' => false],
-            ['text' => $matricula, 'bold' => true],
-            ['text' => ' egresado del programa de Estudios de ', 'bold' => false],
-            ['text' => $carrera . ' ', 'bold' => true],
-            ['text' => 'quien sustentara el protocolo de titulación por la opción de ', 'bold' => false],
+            ['text' => 'Por este medio les informo que el acto protocolario de la Titulación Integral '.($enEquipo ? 'de los CC. ' : 'del C. '), 'bold' => false],
+        ];
+
+        foreach ($sustentantes as $i => $sustentante) {
+            if ($i > 0) {
+                $cuerpoRuns[] = ['text' => $i === count($sustentantes) - 1 ? ' y ' : ', ', 'bold' => false];
+            }
+
+            $cuerpoRuns[] = ['text' => $sustentante['nombre'].' ', 'bold' => true];
+            $cuerpoRuns[] = ['text' => 'con número de Matrícula ', 'bold' => false];
+            $cuerpoRuns[] = ['text' => $sustentante['matricula'], 'bold' => true];
+        }
+
+        array_push(
+            $cuerpoRuns,
+            ['text' => $enEquipo ? ' egresados del programa de Estudios de ' : ' egresado del programa de Estudios de ', 'bold' => false],
+            ['text' => $carrera.' ', 'bold' => true],
+            ['text' => ($enEquipo ? 'quienes sustentarán' : 'quien sustentara').' el protocolo de titulación por la opción de ', 'bold' => false],
             ['text' => $modalidad, 'bold' => true],
             ['text' => ', el cual se llevará a cabo el día ', 'bold' => false],
             ['text' => "{$dia} DE {$mes} DE {$anio}", 'bold' => true],
             ['text' => ' a las ', 'bold' => false],
-            ['text' => $horaInicio . ' HORAS ', 'bold' => true],
+            ['text' => $horaInicio.' HORAS ', 'bold' => true],
             ['text' => ' en el ', 'bold' => false],
             ['text' => $salon, 'bold' => true],
             ['text' => ' de esta Institución por lo que se le pide su puntual asistencia.', 'bold' => false],
-        ];
+        );
 
         $cuerpoXml = '';
         foreach ($cuerpoRuns as $run) {
-            $text  = $this->esc($run['text']);
-            $bold  = $run['bold'] ? '<w:b/>' : '<w:b w:val="0"/>';
+            $text = $this->esc($run['text']);
+            $bold = $run['bold'] ? '<w:b/>' : '<w:b w:val="0"/>';
             $cuerpoXml .= <<<RUNXML
           <w:r>
             <w:rPr>
@@ -524,18 +540,18 @@ TBLXML;
 RUNXML;
         }
 
-        $numOficioEsc     = $this->esc($numOficio);
-        $fechaOficioEsc   = $this->esc($fechaOficioTexto);
+        $numOficioEsc = $this->esc($numOficio);
+        $fechaOficioEsc = $this->esc($fechaOficioTexto);
         $nomPresidenteEsc = $this->esc($nomPresidente);
         $nomSecretarioEsc = $this->esc($nomSecretario);
-        $nomVocalEsc      = $this->esc($nomVocal);
+        $nomVocalEsc = $this->esc($nomVocal);
 
         $tablaFirma = $this->tablaFirma();
         $ccpPresidente = $this->ccpLine('Presidente');
         $ccpSecretario = $this->ccpLine('Secretario');
-        $ccpVocal      = $this->ccpLine('Vocal');
-        $ccpEgresado   = $this->ccpLine('Egresado');
-        $ccpArchivo    = $this->ccpLine('Archivo');
+        $ccpVocal = $this->ccpLine('Vocal');
+        $ccpEgresado = $this->ccpLine('Egresado');
+        $ccpArchivo = $this->ccpLine('Archivo');
 
         return <<<DOCXML
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>

@@ -1,15 +1,16 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AlumnoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocenteController;
-use App\Http\Controllers\AlumnoController;
-use App\Http\Controllers\ExamenController;
-use App\Http\Controllers\ImportadorDocenteController;
 use App\Http\Controllers\DocumentoController;
-use App\Http\Controllers\SinodalController;
+use App\Http\Controllers\ExamenController;
 use App\Http\Controllers\HistorialController;
+use App\Http\Controllers\ImportadorDocenteController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SinodalController;
 use App\Models\Examen;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -36,7 +37,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('docentes/{docente}/horarios', [DocenteController::class, 'limpiarHorarios'])
         ->name('docentes.horarios.limpiar');
 
-    Route::get('docentes/{docente}/importar-horarios',  [ImportadorDocenteController::class, 'form'])
+    Route::get('docentes/{docente}/importar-horarios', [ImportadorDocenteController::class, 'form'])
         ->name('docentes.importar.form');
     Route::post('docentes/{docente}/importar-horarios', [ImportadorDocenteController::class, 'procesar'])
         ->name('docentes.importar.procesar');
@@ -55,42 +56,49 @@ Route::middleware('auth')->group(function () {
 
     Route::get('examenes/{id}', function ($id) {
         $examen = Examen::findOrFail($id);
+
         return app(ExamenController::class)->show($examen);
     })->name('examenes.show');
 
     Route::get('examenes/{id}/edit', function ($id) {
-        $examen  = Examen::findOrFail($id);
-        $alumnos = \App\Models\Alumno::orderBy('apellido_paterno')->get();
-        return view('examenes.edit', compact('examen', 'alumnos'));
+        $examen = Examen::findOrFail($id);
+
+        return app(ExamenController::class)->edit($examen);
     })->name('examenes.edit');
 
-    Route::put('examenes/{id}', function ($id, \Illuminate\Http\Request $request) {
+    Route::put('examenes/{id}', function ($id, Request $request) {
         $examen = Examen::findOrFail($id);
+
         return app(ExamenController::class)->update($request, $examen);
     })->name('examenes.update');
 
     Route::delete('examenes/{id}', function ($id) {
         $examen = Examen::findOrFail($id);
+
         return app(ExamenController::class)->destroy($examen);
     })->name('examenes.destroy');
 
     Route::get('examenes/{id}/sinodales', function ($id) {
         $examen = Examen::findOrFail($id);
-        return app(ExamenController::class)->sinodales($examen);
+
+        return app(ExamenController::class)->sinodales(request(), $examen);
     })->name('examenes.sinodales');
 
-    Route::post('examenes/{id}/sinodales', function ($id, \Illuminate\Http\Request $request) {
+    Route::post('examenes/{id}/sinodales', function ($id, Request $request) {
         $examen = Examen::findOrFail($id);
+
         return app(ExamenController::class)->storeSinodales($request, $examen);
     })->name('examenes.sinodales.store');
 
     Route::get('examenes/{id}/oficio', function ($id) {
         $examen = Examen::findOrFail($id);
+
         return app(ExamenController::class)->descargarOficio($examen);
     })->name('examenes.oficio');
 
     Route::get('examenes/{id}/hoja', function ($id) {
-        $examen = Examen::with('alumno', 'sinodales.docente')->findOrFail($id);
+        $examen = Examen::with('alumnos', 'sinodales.docente')->findOrFail($id);
+
         return view('examenes.hoja', compact('examen'));
     })->name('examenes.hoja');
 
@@ -98,7 +106,6 @@ Route::middleware('auth')->group(function () {
     Route::post('alumnos/{alumno}/titular', [AlumnoController::class, 'titular'])->name('alumnos.titular');
 
     Route::get('documentos', [DocumentoController::class, 'index'])->name('documentos.index');
-
 
     Route::get('sinodales', [SinodalController::class, 'index'])->name('sinodales.index');
 

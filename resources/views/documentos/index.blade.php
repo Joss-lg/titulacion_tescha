@@ -101,7 +101,7 @@ $documentosList = [
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0
                                             {{ $completo ? 'bg-emerald-100 text-emerald-700' : 'bg-vino-100 text-vino-800' }}">
-                                    {{ strtoupper(substr($alumno->nombre, 0, 1) . substr($alumno->apellido_paterno, 0, 1)) }}
+                                    {{ mb_strtoupper(mb_substr($alumno->nombre, 0, 1) . mb_substr($alumno->apellido_paterno, 0, 1)) }}
                                 </div>
                                 <div>
                                     <p class="text-sm font-semibold text-gray-800">{{ $alumno->nombre_completo }}</p>

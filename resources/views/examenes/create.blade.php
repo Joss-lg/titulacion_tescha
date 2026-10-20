@@ -32,18 +32,24 @@
             @csrf
 
             <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Alumno *</label>
-                <select name="alumno_id" required
-                        class="w-full px-4 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-vino-400 transition-all
-                               @error('alumno_id') border-red-300 bg-red-50 @else border-gray-200 @enderror">
-                    <option value="">Seleccionar alumno...</option>
-                    @foreach($alumnos as $alumno)
-                        <option value="{{ $alumno->id }}" {{ old('alumno_id') == $alumno->id ? 'selected' : '' }}>
-                            {{ $alumno->nombre_completo }} — {{ $alumno->matricula }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('alumno_id')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Alumnos *</label>
+                <p class="text-xs text-gray-400 mb-2">El examen puede ser individual o en equipo de 2 o 3 alumnos. El presidente es el que se definió al registrar al alumno; en equipo deben compartirlo.</p>
+                <div class="space-y-2">
+                    @for($i = 0; $i < 3; $i++)
+                    <select name="alumnos[]" {{ $i === 0 ? 'required' : '' }}
+                            class="w-full px-4 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-vino-400 transition-all
+                                   @error('alumnos') border-red-300 bg-red-50 @else border-gray-200 @enderror">
+                        <option value="">{{ $i === 0 ? 'Seleccionar alumno...' : 'Integrante ' . ($i + 1) . ' (opcional)' }}</option>
+                        @foreach($alumnos as $alumno)
+                            <option value="{{ $alumno->id }}" {{ (old('alumnos')[$i] ?? null) == $alumno->id ? 'selected' : '' }}>
+                                {{ $alumno->nombre_completo }} — {{ $alumno->matricula }}{{ $alumno->presidente ? ' · Pres. '.$alumno->presidente->nombre_con_grado : ' · Sin presidente' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @endfor
+                </div>
+                @error('alumnos')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                @error('alumnos.*')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -56,20 +62,18 @@
                     @error('fecha')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Hora inicio *</label>
-                    <input type="time" name="hora_inicio" value="{{ old('hora_inicio') }}" required
-                           class="w-full px-4 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-vino-400 transition-all
-                                  @error('hora_inicio') border-red-300 bg-red-50 @else border-gray-200 @enderror"/>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Horario (1 hora) *</label>
+                    @php $horaSeleccionada = old('hora_inicio'); @endphp
+                    <select name="hora_inicio" required
+                            class="w-full px-4 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-vino-400 transition-all
+                                   @error('hora_inicio') border-red-300 bg-red-50 @else border-gray-200 @enderror">
+                        <option value="">Seleccionar horario...</option>
+                        @foreach($bloques as $inicio => $texto)
+                            <option value="{{ $inicio }}" {{ $horaSeleccionada === $inicio ? 'selected' : '' }}>{{ $texto }}</option>
+                        @endforeach
+                    </select>
                     @error('hora_inicio')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Hora fin *</label>
-                    <input type="time" name="hora_fin" value="{{ old('hora_fin') }}" required
-                           class="w-full px-4 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-vino-400 transition-all
-                                  @error('hora_fin') border-red-300 bg-red-50 @else border-gray-200 @enderror"/>
-                    @error('hora_fin')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
 
                 <div>

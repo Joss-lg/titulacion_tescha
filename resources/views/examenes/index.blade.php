@@ -59,11 +59,13 @@
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-vino-100 text-vino-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                {{ strtoupper(substr($examen->alumno->nombre, 0, 1) . substr($examen->alumno->apellido_paterno, 0, 1)) }}
+                                {{ $examen->iniciales_alumnos }}
                             </div>
                             <div>
-                                <p class="text-sm font-semibold text-gray-800">{{ $examen->alumno->nombre_completo }}</p>
-                                <p class="text-xs text-gray-400 font-mono">{{ $examen->alumno->matricula }}</p>
+                                @foreach($examen->alumnos as $integrante)
+                                    <p class="text-sm font-semibold text-gray-800">{{ $integrante->nombre_completo }}</p>
+                                    <p class="text-xs text-gray-400 font-mono">{{ $integrante->matricula }}</p>
+                                @endforeach
                             </div>
                         </div>
                     </td>

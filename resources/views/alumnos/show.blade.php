@@ -54,7 +54,7 @@ $documentosList = [
             <div class="flex flex-col items-center text-center mb-5">
                 <div class="w-16 h-16 rounded-2xl {{ $alumno->estado === 'titulado' ? 'bg-emerald-100 text-emerald-700' : 'bg-vino-100 text-vino-800' }}
                             flex items-center justify-center text-xl font-bold mb-3">
-                    {{ strtoupper(substr($alumno->nombre, 0, 1) . substr($alumno->apellido_paterno, 0, 1)) }}
+                    {{ mb_strtoupper(mb_substr($alumno->nombre, 0, 1) . mb_substr($alumno->apellido_paterno, 0, 1)) }}
                 </div>
                 <h2 class="font-bold text-gray-800 text-sm leading-tight">{{ $alumno->nombre_completo }}</h2>
                 <p class="text-xs text-gray-400 font-mono mt-1">{{ $alumno->matricula }}</p>
@@ -72,6 +72,12 @@ $documentosList = [
                     <span class="text-xs text-gray-400 flex-shrink-0">Modalidad</span>
                     <span class="text-xs font-medium text-gray-700 text-right">
                         {{ str_replace('_', ' ', ucfirst($alumno->modalidad)) }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-start gap-2">
+                    <span class="text-xs text-gray-400 flex-shrink-0">Presidente</span>
+                    <span class="text-xs font-medium text-gray-700 text-right">
+                        {{ $alumno->presidente?->nombre_con_grado ?? 'Sin asignar' }}
                     </span>
                 </div>
             </div>
@@ -121,7 +127,7 @@ $documentosList = [
                 <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
                     <div class="w-8 h-8 rounded-lg {{ $config['bg'] }} {{ $config['text'] }}
                                 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                        {{ strtoupper(substr($sinodal->docente->nombre, 0, 1) . substr($sinodal->docente->apellido_paterno, 0, 1)) }}
+                        {{ mb_strtoupper(mb_substr($sinodal->docente->nombre, 0, 1) . mb_substr($sinodal->docente->apellido_paterno, 0, 1)) }}
                     </div>
                     <div class="min-w-0 flex-1">
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">{{ $config['label'] }}</p>

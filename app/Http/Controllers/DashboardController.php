@@ -6,18 +6,16 @@ use App\Models\Alumno;
 use App\Models\Docente;
 use App\Models\Examen;
 use App\Models\Titulacion;
-use App\Models\Sinodal;
-use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index()
     {
         // ── Métricas principales ──────────────────────────────
-        $totalAlumnos     = Alumno::count();
-        $totalDocentes    = Docente::where('activo', true)->count();
-        $totalExamenes    = Examen::where('estado', 'programado')->count();
-        $totalTitulados   = Titulacion::where('resultado', 'aprobado')->count();
+        $totalAlumnos = Alumno::count();
+        $totalDocentes = Docente::where('activo', true)->count();
+        $totalExamenes = Examen::where('estado', 'programado')->count();
+        $totalTitulados = Titulacion::where('resultado', 'aprobado')->count();
 
         // ── Alumnos por estado ────────────────────────────────
         $alumnosPorEstado = Alumno::selectRaw('estado, count(*) as total')
@@ -25,7 +23,7 @@ class DashboardController extends Controller
             ->pluck('total', 'estado');
 
         // ── Próximos exámenes (los 5 más cercanos) ────────────
-        $proximosExamenes = Examen::with('alumno', 'sinodales')
+        $proximosExamenes = Examen::with('alumnos', 'sinodales')
             ->where('estado', 'programado')
             ->where('fecha', '>=', now()->toDateString())
             ->orderBy('fecha')
@@ -34,7 +32,7 @@ class DashboardController extends Controller
             ->get();
 
         // ── Exámenes sin sinodales completos ──────────────────
-        $sinSinodales = Examen::with('alumno')
+        $sinSinodales = Examen::with('alumnos')
             ->where('estado', 'programado')
             ->withCount('sinodales')
             ->having('sinodales_count', '<', 3)
@@ -51,32 +49,32 @@ class DashboardController extends Controller
         $actividadReciente = collect()
             ->merge(
                 Alumno::orderBy('created_at', 'desc')->limit(3)->get()
-                    ->map(fn($a) => [
-                        'tipo'  => 'alumno',
+                    ->map(fn ($a) => [
+                        'tipo' => 'alumno',
                         'texto' => "Nuevo alumno: {$a->nombre_completo}",
                         'fecha' => $a->created_at,
                         'color' => 'blue',
-                        'icon'  => 'fa-user-graduate',
+                        'icon' => 'fa-user-graduate',
                     ])
             )
             ->merge(
                 Titulacion::orderBy('created_at', 'desc')->limit(3)->get()
-                    ->map(fn($t) => [
-                        'tipo'  => 'titulacion',
+                    ->map(fn ($t) => [
+                        'tipo' => 'titulacion',
                         'texto' => "Titulado: {$t->nombre_completo}",
                         'fecha' => $t->created_at,
                         'color' => 'emerald',
-                        'icon'  => 'fa-graduation-cap',
+                        'icon' => 'fa-graduation-cap',
                     ])
             )
             ->merge(
-                Examen::with('alumno')->orderBy('created_at', 'desc')->limit(3)->get()
-                    ->map(fn($e) => [
-                        'tipo'  => 'examen',
-                        'texto' => "Examen programado: {$e->alumno->nombre_completo}",
+                Examen::with('alumnos')->orderBy('created_at', 'desc')->limit(3)->get()
+                    ->map(fn ($e) => [
+                        'tipo' => 'examen',
+                        'texto' => "Examen programado: {$e->nombres_alumnos}",
                         'fecha' => $e->created_at,
                         'color' => 'purple',
-                        'icon'  => 'fa-calendar-check',
+                        'icon' => 'fa-calendar-check',
                     ])
             )
             ->sortByDesc('fecha')

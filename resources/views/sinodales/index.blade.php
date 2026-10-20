@@ -90,11 +90,13 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 rounded-lg bg-vino-100 text-vino-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                        {{ strtoupper(substr($examen->alumno->nombre, 0, 1) . substr($examen->alumno->apellido_paterno, 0, 1)) }}
+                                        {{ $examen->iniciales_alumnos }}
                                     </div>
                                     <div>
-                                        <p class="text-sm font-semibold text-gray-800">{{ $examen->alumno->nombre_completo }}</p>
-                                        <p class="text-xs font-mono text-gray-400">{{ $examen->alumno->matricula }}</p>
+                                        @foreach($examen->alumnos as $integrante)
+                                            <p class="text-sm font-semibold text-gray-800">{{ $integrante->nombre_completo }}</p>
+                                            <p class="text-xs font-mono text-gray-400">{{ $integrante->matricula }}</p>
+                                        @endforeach
                                     </div>
                                 </div>
                             </td>
@@ -183,7 +185,7 @@
             <div class="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0
                             {{ $item->docente->tipo === 'ptc' ? 'bg-vino-100 text-vino-700' : 'bg-gray-100 text-gray-600' }}">
-                    {{ strtoupper(substr($item->docente->nombre, 0, 1) . substr($item->docente->apellido_paterno, 0, 1)) }}
+                    {{ mb_strtoupper(mb_substr($item->docente->nombre, 0, 1) . mb_substr($item->docente->apellido_paterno, 0, 1)) }}
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-gray-700 truncate">{{ $item->docente->nombre_completo }}</p>

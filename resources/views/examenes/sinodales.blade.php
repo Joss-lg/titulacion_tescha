@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Asignar sinodales')
-@section('subtitle', $examen->alumno->nombre_completo . ' · ' . \Carbon\Carbon::parse($examen->fecha)->isoFormat('D [de] MMMM, YYYY'))
+@section('subtitle', $examen->nombres_alumnos . ' · ' . \Carbon\Carbon::parse($examen->fecha)->isoFormat('D [de] MMMM, YYYY'))
 
 @section('content')
 
@@ -22,8 +22,10 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
             </svg>
-            <span class="text-sm font-semibold text-gray-700">{{ $examen->alumno->nombre_completo }}</span>
-            <span class="text-xs text-gray-400 font-mono">{{ $examen->alumno->matricula }}</span>
+            @foreach($examen->alumnos as $integrante)
+                <span class="text-sm font-semibold text-gray-700">{{ $integrante->nombre_completo }}</span>
+                <span class="text-xs text-gray-400 font-mono">{{ $integrante->matricula }}</span>
+            @endforeach
         </div>
         <div class="w-px h-4 bg-gray-200 hidden sm:block"></div>
         <div class="flex items-center gap-2">
@@ -67,9 +69,22 @@
             <span class="w-1.5 h-4 bg-vino-700 rounded-full"></span>
             Asignar sinodales
         </h3>
-        <p class="text-xs text-gray-400 mb-5 ml-4">
-            Cualquier docente activo y disponible puede ocupar cualquier rol.
-        </p>
+        <div class="flex items-start justify-between gap-3 mb-5 ml-4">
+            <p class="text-xs text-gray-400">
+                @if($presidenteFijo)
+                    El presidente se definió al registrar al alumno.
+                @endif
+                Secretario y vocal se sortean entre los docentes disponibles, dando prioridad a quien tiene menos exámenes asignados.
+            </p>
+            <a href="{{ route('examenes.sinodales', ['id' => $examen->id, 'sortear' => 1]) }}"
+               class="flex-shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-vino-700 bg-vino-50 hover:bg-vino-100 px-3 py-1.5 rounded-lg transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Volver a sortear
+            </a>
+        </div>
 
         @if(count($candidatos['disponibles']) < 3)
             <div class="bg-red-50 border border-red-100 rounded-xl p-4 mb-4 flex items-start gap-3">
@@ -94,7 +109,6 @@
             ] as $rol => $config)
 
             @php
-                $sinodalActual = $examen->sinodales->where('rol', $rol)->first();
                 $textColor = match($config['color']) {
                     'vino'   => 'text-vino-700',
                     'blue'   => 'text-blue-600',
@@ -116,18 +130,28 @@
                     </span>
                     <span class="text-xs text-gray-400">— Docente o PTC</span>
                 </div>
+                @if($rol === 'presidente' && $presidenteFijo)
+                    <div class="px-3 py-2.5 text-sm bg-white border border-gray-200 rounded-xl text-gray-700">
+                        {{ $presidenteFijo->nombre_con_grado }}
+                        <span class="text-xs text-gray-400">(definido en el registro del alumno)</span>
+                    </div>
+                    @unless(collect($candidatos['disponibles'])->contains('docente.id', $presidenteFijo->id))
+                        <p class="mt-1 text-xs text-red-500">El presidente no está disponible en este horario. Cambia la fecha u hora del examen.</p>
+                    @endunless
+                @else
                 <select name="{{ $rol }}" required
                         class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl
                                focus:outline-none {{ $config['ring'] }} focus:ring-2 bg-white transition-all">
                     <option value="">Seleccionar docente...</option>
                     @foreach($candidatos['disponibles'] as $candidato)
                         <option value="{{ $candidato['docente']->id }}"
-                            {{ $sinodalActual && $sinodalActual->docente_id == $candidato['docente']->id ? 'selected' : '' }}>
+                            {{ old($rol, $sugeridos[$rol]) == $candidato['docente']->id ? 'selected' : '' }}>
                             {{ $candidato['docente']->nombre_completo }}
                             ({{ $candidato['docente']->tipo === 'ptc' ? 'PTC' : 'Asignatura' }})
                         </option>
                     @endforeach
                 </select>
+                @endif
                 @error($rol)
                     <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                 @enderror
@@ -194,7 +218,7 @@
             <div class="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0
                             {{ $c['docente']->tipo === 'ptc' ? 'bg-vino-100 text-vino-700' : 'bg-gray-100 text-gray-600' }}">
-                    {{ strtoupper(substr($c['docente']->nombre, 0, 1) . substr($c['docente']->apellido_paterno, 0, 1)) }}
+                    {{ mb_strtoupper(mb_substr($c['docente']->nombre, 0, 1) . mb_substr($c['docente']->apellido_paterno, 0, 1)) }}
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-gray-700 truncate">
@@ -231,7 +255,7 @@
                 <div class="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
                     <div class="w-8 h-8 rounded-lg bg-gray-100 text-gray-400
                                 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                        {{ strtoupper(substr($c['docente']->nombre, 0, 1) . substr($c['docente']->apellido_paterno, 0, 1)) }}
+                        {{ mb_strtoupper(mb_substr($c['docente']->nombre, 0, 1) . mb_substr($c['docente']->apellido_paterno, 0, 1)) }}
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm text-gray-500 truncate">{{ $c['docente']->nombre_completo }}</p>

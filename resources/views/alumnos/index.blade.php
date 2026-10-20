@@ -91,7 +91,7 @@ $estados = [
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-vino-100 text-vino-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                {{ strtoupper(substr($alumno->nombre, 0, 1) . substr($alumno->apellido_paterno, 0, 1)) }}
+                                {{ mb_strtoupper(mb_substr($alumno->nombre, 0, 1) . mb_substr($alumno->apellido_paterno, 0, 1)) }}
                             </div>
                             <div>
                                 <p class="text-sm font-semibold text-gray-800">{{ $alumno->nombre_completo }}</p>
