@@ -118,6 +118,7 @@ class ExamenEnEquipoTest extends TestCase
         $zip = new ZipArchive;
         $zip->open($ruta);
         $documento = $zip->getFromName('word/document.xml');
+        $membrete = $zip->locateName('word/media/image1.png');
         $zip->close();
         unlink($ruta);
 
@@ -126,6 +127,7 @@ class ExamenEnEquipoTest extends TestCase
         $this->assertStringContainsString('BETO LÓPEZ', $documento);
         $this->assertStringContainsString('22000002', $documento);
         $this->assertStringContainsString('quienes sustentarán', $documento);
+        $this->assertNotFalse($membrete, 'El oficio debe incluir el membrete.');
     }
 
     private function crearAlumno(string $nombre, string $matricula): Alumno

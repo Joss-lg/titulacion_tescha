@@ -270,7 +270,12 @@ class ExamenController extends Controller
             return back()->with('error', 'Este examen aún no tiene los 3 sinodales asignados.');
         }
 
-        $ruta = app(OficioSinodalService::class)->generar($examen);
+        try {
+            $ruta = app(OficioSinodalService::class)->generar($examen);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', 'No se pudo generar el oficio: '.$e->getMessage());
+        }
+
         $nombre = 'Oficio_Sinodales_'.$examen->alumnos->pluck('matricula')->implode('_').'.docx';
 
         return response()->download($ruta, $nombre)->deleteFileAfterSend(false);

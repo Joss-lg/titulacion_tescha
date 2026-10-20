@@ -76,7 +76,12 @@ class OficioSinodalService
         }
 
         // Rutas
-        $membretePath = storage_path('app/plantillas/membrete.png');
+        // El membrete vive en resources/ para que se suba con el código al servidor
+        $membretePath = resource_path('plantillas/membrete.png');
+
+        if (! file_exists($membretePath)) {
+            throw new \RuntimeException('No se encontró el membrete del oficio en resources/plantillas/membrete.png.');
+        }
         $outputDir = storage_path('app/oficios');
         $outputFile = $outputDir.'/oficio_sinodales_'.$alumnos->pluck('matricula')->implode('_').'_'.$examen->id.'.docx';
 
@@ -145,9 +150,7 @@ class OficioSinodalService
         $zip->addFromString('word/_rels/header1.xml.rels', $this->headerRels());
 
         // Imagen del membrete
-        if (file_exists($membretePath)) {
-            $zip->addFile($membretePath, 'word/media/image1.png');
-        }
+        $zip->addFile($membretePath, 'word/media/image1.png');
 
         // word/header1.xml  (imagen full-page como anchor)
         $zip->addFromString('word/header1.xml', $this->headerXml());
@@ -748,7 +751,6 @@ RUNXML;
     <!-- Espacio después de firma (moderado, para dejar area de ccps) -->
     <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/></w:pPr></w:p>
     <w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr></w:p>
-    <w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr></w:p>
 
     <!-- CCP lines (8pt = sz 16) -->
 {$ccpPresidente}
@@ -756,8 +758,6 @@ RUNXML;
 {$ccpVocal}
 {$ccpEgresado}
 {$ccpArchivo}
-
-    <w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr></w:p>
 
     <!-- Propiedades de página: carta, márgenes como el original -->
     <w:sectPr>
